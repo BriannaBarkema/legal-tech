@@ -77,7 +77,7 @@ def rent_details_page():
         address_2 = st.text_input("Address 2")
         city = st.text_input("City")
         state = st.text_input("State")
-        zip_code = st.number_input("ZIP Code")
+        zip_code = st.text_input("ZIP Code")
 
         current_rent = st.number_input("Current Rent", format='%d')
 
