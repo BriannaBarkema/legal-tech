@@ -4,12 +4,70 @@ import pandas as pd
 import streamlit.components.v1 as components
 from st_login_form import login_form
 import requests
-import os
+import openai
+from pdfminer.high_level import extract_text
+import time
 
+openai_client = openai.Client(api_key=st.secrets["OPEN_AI"])
+
+# Retrieve the assistant you want to use
+assistant = openai_client.beta.assistants.retrieve(
+    st.secrets["OPEN_AI_ASSISTANT"]
+)
 # Placeholder function for the chat GPT iframe
 def chat_gpt():
-    iframe_src = "https://chat.openai.com/g/g-S2mpeGXVc-r-ease-assistant"
-    components.iframe(iframe_src, height=600, scrolling=True)
+    st.title("Ask R-ease-assistant to help give you personalized advice!")
+    if not st.session_state["lease"]:
+        st.subheader("Upload a lease PDF and get insights:")
+
+        # File uploader allows both CSV and PDF
+        lease = st.file_uploader("Upload a file", type=["csv", "pdf"], label_visibility="collapsed")
+        st.session_state["lease"] = lease
+    
+    # Button to trigger processing
+    if st.button("Ask questions!"):
+        if st.session_state["lease"] is not None:
+            # Text input for direct questions
+            user_query = st.text_input("Ask a virtual tenant rights questions!")
+
+            # Create a status indicator to show the user the assistant is working
+            with st.status("Starting work...", expanded=False) as status_box:
+                # Upload the file to OpenAI
+                file = openai_client.files.create(
+                    file=lease, purpose="assistants"
+                )
+
+                # Create a new thread with a message that has the uploaded file's ID
+                thread = openai_client.beta.threads.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": "Attached is the lease of the tenent. This is the user's questions: " + user_query,
+                            "file_ids": [file.id],
+                        }
+                    ]
+                )
+
+                # Create a run with the new thread
+                run = openai_client.beta.threads.runs.create(
+                    thread_id=thread.id,
+                    assistant_id=assistant.id,
+                )
+
+                # Check periodically whether the run is done, and update the status
+                while run.status != "completed":
+                    time.sleep(5)
+                    status_box.update(label=f"{run.status}...", state="running")
+                    run = openai_client.beta.threads.runs.retrieve(
+                        thread_id=thread.id, run_id=run.id
+                    )
+
+                # Once the run is complete, update the status box and show the content
+                status_box.update(label="Complete", state="complete", expanded=True)
+                messages = openai_client.beta.threads.messages.list(
+                    thread_id=thread.id
+                )
+                st.markdown(messages.data[0].content[0].text.value)
 
 # Placeholder function for onboarding
 def onboarding_page():
@@ -30,6 +88,7 @@ def onboarding_page():
                 # Process or store the lease document as needed
                 # For demonstration, we're just saving that the document has been uploaded
                 lease_uploaded = True
+                st.session_state["lease"] = lease_document
             else:
                 lease_uploaded = False
             st.session_state["basic_onboarding_complete"] = True
@@ -54,7 +113,7 @@ def verify_address_with_usps(address, call_counter=0):
 def main_page():
     # Sidebar navigation but only for the Main Page
     st.sidebar.title("Main Navigation")
-    page_options = ["Home", "Option 1", "Option 2"]  # Example options
+    page_options = ["Home", "Existing Requests", "New Request", "Chat with Virtual Advocate"]  # Example options
     selected_option = st.sidebar.radio("Choose an option", page_options)
 
     st.title("Welcome to the App")
@@ -65,9 +124,7 @@ def main_page():
 
     if st.session_state.get("user_info"):
         st.json(st.session_state["user_info"])
-    
-    st.header("Chat!")
-    chat_gpt()
+
 
 
 def rent_details_page():
