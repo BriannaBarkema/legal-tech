@@ -125,8 +125,6 @@ def main_page():
     if st.session_state.get("user_info"):
         st.json(st.session_state["user_info"])
 
-
-
 def rent_details_page():
     st.title("Rent Details")
     with st.form("rent_details_form"):
