@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import streamlit.components.v1 as components
 from st_login_form import login_form
+import requests
 
 # Placeholder function for the chat GPT iframe
 def chat_gpt():
@@ -34,6 +35,20 @@ def onboarding_page():
             st.session_state["user_info"] = {"first_name": first_name, "last_name": last_name, "dob": dob, "email": email, "lease_uploaded": lease_uploaded}
             st.success("Now let's get you to tell us more about your lease situation.")
 
+def verify_address_with_usps(address, call_counter=0):
+    # This URL and parameters will need to be updated according to the specific USPS API documentation.
+    usps_api_url = "https://secure.shippingapis.com/ShippingAPI.dll"
+    params = {
+        "API": "Verify",
+        "XML": f"<AddressValidateRequest USERID='your_usps_userid'><Address><Address1>{address['address1']}</Address1><Address2>{address['address2']}</Address2><City>{address['city']}</City><State>{address['state']}</State><Zip5>{address['zip']}</Zip5><Zip4/></Address></AddressValidateRequest>"
+    }
+    response = requests.get(usps_api_url, params=params)
+    # You'll need to parse the XML response from USPS to determine if the address is valid.
+    # This is a placeholder for the logic to parse the response and determine validity.
+    is_valid = True  # This should be set based on the actual response
+    standardized_address = {}  # This should be populated with the standardized address if valid
+    return is_valid, standardized_address
+
 # Main page content
 def main_page():
     st.title("Welcome to the App")
@@ -50,7 +65,51 @@ def main_page():
 
 def rent_details_page():
     st.title("Rent Details")
+    with st.form("rent_details_form"):
+        address_1 = st.text_input("Address 1")
+        address_2 = st.text_input("Address 2")
+        city = st.text_input("City")
+        state = st.text_input("State")
+        zip_code = st.text_input("ZIP Code")  # ZIP code is better handled as text due to leading zeros
 
+        current_rent = st.number_input("Current Rent", format='%d')
+
+        lo_name = st.text_input("Leasing Officer Name")
+        lo_email = st.text_input("Leasing Officer Email")
+
+        super_name = st.text_input("Supervisor Name")
+        super_email = st.text_input("Supervisor Email")
+
+        submitted = st.form_submit_button("Submit")  
+        if submitted:
+            address = {
+                "address1": address_1,
+                "address2": address_2,
+                "city": city,
+                "state": state,
+                "zip": zip_code
+            }
+            # Assuming verify_address_with_usps is a function you have defined elsewhere
+            # and it returns a boolean indicating validity and a dictionary with the standardized address
+            is_valid, standardized_address = verify_address_with_usps(address)
+            if is_valid:
+                # Update the rent_details dictionary with all gathered information
+                st.session_state["rent_details_complete"] = True
+                st.session_state["rent_details"] = {
+                    "address_1": address_1,
+                    "address_2": address_2,
+                    "city": city,
+                    "state": state,
+                    "zip_code": zip_code,
+                    "current_rent": current_rent,
+                    "lo_name": lo_name,
+                    "lo_email": lo_email,
+                    "super_name": super_name,
+                    "super_email": super_email
+                }
+                st.success("Rent details submitted successfully.")
+            else:
+                st.error("The address could not be verified. Please check and try again.")
 
 # Sidebar navigation
 def app():
@@ -94,5 +153,8 @@ if "authenticated" not in st.session_state:
 
 if "basic_onboarding_complete" not in st.session_state:
     st.session_state["basic_onboarding_complete"] = False
+
+if "rent_details_complete" not in st.session_state:
+    st.session_state["rent_details_complete"] = False
 
 app()
