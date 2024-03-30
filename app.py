@@ -9,7 +9,6 @@ def chat_gpt():
     iframe_src = "https://chat.openai.com/g/g-S2mpeGXVc-r-ease-assistant"
     components.iframe(iframe_src)
 
-
 # Function to display the onboarding page
 def onboarding_page():
     st.title("Onboarding")
