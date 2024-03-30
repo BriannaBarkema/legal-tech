@@ -1,3 +1,8 @@
-supabase
-st-login-form
-streamlit
+numpy==1.26.4
+openai==1.14.3
+pandas==2.2.1
+pdfminer==20191125
+pdfminer.six==20231228
+Requests==2.31.0
+st_login_form==0.2.2
+streamlit==1.32.2
