@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit.components.v1 as components
 from st_login_form import login_form
 import requests
+import os
 
 # Placeholder function for the chat GPT iframe
 def chat_gpt():
@@ -49,8 +50,12 @@ def verify_address_with_usps(address, call_counter=0):
     standardized_address = {}  # This should be populated with the standardized address if valid
     return is_valid, standardized_address
 
-# Main page content
 def main_page():
+    # Sidebar navigation but only for the Main Page
+    st.sidebar.title("Main Navigation")
+    page_options = ["Home", "Option 1", "Option 2"]  # Example options
+    selected_option = st.sidebar.radio("Choose an option", page_options)
+
     st.title("Welcome to the App")
     if st.session_state.get("username"):
         st.header(f"Hello, {st.session_state['username']}!")
@@ -63,6 +68,7 @@ def main_page():
     st.header("Chat!")
     chat_gpt()
 
+
 def rent_details_page():
     st.title("Rent Details")
     with st.form("rent_details_form"):
@@ -70,7 +76,7 @@ def rent_details_page():
         address_2 = st.text_input("Address 2")
         city = st.text_input("City")
         state = st.text_input("State")
-        zip_code = st.text_input("ZIP Code")  # ZIP code is better handled as text due to leading zeros
+        zip_code = st.number_input("ZIP Code")
 
         current_rent = st.number_input("Current Rent", format='%d')
 
@@ -108,12 +114,22 @@ def rent_details_page():
                     "super_email": super_email
                 }
                 st.success("Rent details submitted successfully.")
+                st.experimental_rerun()
             else:
                 st.error("The address could not be verified. Please check and try again.")
 
-# Sidebar navigation
 def app():
-    st.sidebar.title("Navigation")
+    # Determine the current page based on the completion status of previous pages
+    if not st.session_state.get("authenticated", False):
+        current_page = "Login"
+    elif not st.session_state.get("basic_onboarding_complete", False):
+        current_page = "Basic Onboarding"
+    elif not st.session_state.get("rent_details_complete", False):
+        current_page = "Rent Details"
+    else:
+        current_page = "Main Page"
+
+    # Navigation pages dictionary
     pages = {
         "Login": login,
         "Basic Onboarding": onboarding_page,
@@ -121,16 +137,8 @@ def app():
         "Main Page": main_page
     }
 
-    if st.session_state.get("authenticated", False):
-        page_selection = st.sidebar.radio("Go to", ["Basic Onboarding", "Rent Details", "Main Page"])
-    else:
-        page_selection = "Login"
-    
-    # Page navigation
-    if page_selection == "Login":
-        login()
-    else:
-        pages[page_selection]()
+    # Execute the current page function
+    pages[current_page]()
 
 # Login function
 def login():
