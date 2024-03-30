@@ -35,6 +35,7 @@ def onboarding_page():
             st.session_state["basic_onboarding_complete"] = True
             st.session_state["user_info"] = {"first_name": first_name, "last_name": last_name, "dob": dob, "email": email, "lease_uploaded": lease_uploaded}
             st.success("Now let's get you to tell us more about your lease situation.")
+            st.experimental_rerun()
 
 def verify_address_with_usps(address, call_counter=0):
     # This URL and parameters will need to be updated according to the specific USPS API documentation.
